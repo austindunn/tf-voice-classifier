@@ -65,7 +65,8 @@ def train_test_save(datapath, train_loops, train_samples, test_loops, test_sampl
                 batch_samples.append(flat)
                 batch_labels.append(class_label)
         train_accuracy = sess.run(accuracy, feed_dict={x:batch_samples, y_: batch_labels, keep_prob: 1.0})
-        print 'Step: ' + str(step+1) + ', training accuracy: ' + str(train_accuracy)
+        if (step + 1) % 25 == 0:
+            print 'Step: ' + str(step+1) + ', training accuracy: ' + str(train_accuracy)
         sess.run(train_step, feed_dict={x: batch_samples, y_: batch_labels, keep_prob: 0.5})
 
     # test accuracy of the model once trained
