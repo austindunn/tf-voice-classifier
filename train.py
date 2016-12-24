@@ -146,16 +146,14 @@ def make_config_file(path, tensor_size, num_classes, classnames):
 
 
 if __name__ == "__main__":
-    # make sure correct number of arguments
-    if len(sys.argv) < 6:
-        print "Incorrect usage"
-        exit()
+    assert len(sys.argv) > 5 and len(sys.argv) < 8, 'Incorrect usage, please see top of train.py file.'
+
     datapath = sys.argv[1]
     train_loops = sys.argv[2]
     train_samples = sys.argv[3]
     test_loops = sys.argv[4]
     test_samples = sys.argv[5]
-    if (len(sys.argv) == 7):
+    if (len(sys.argv) > 6):
         save_path = sys.argv[6]
     else: save_path = None
     train_test_save(datapath, int(train_loops), int(train_samples), int(test_loops), int(test_samples), save_path)

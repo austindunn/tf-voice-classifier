@@ -52,7 +52,7 @@ def read_and_predict(model_path, wav_path, frame_length, amp_threshold, logging_
     talking_started = False
     count = 0
 
-    print 'Starting classification... Examining ' + str(num_windows) + ' windows.'
+    print 'Starting analysis... Examining ' + str(num_windows) + ' windows.'
     while wav.tell() + frame_length <= num_frames:
         count += 1
         # logging stats
@@ -118,7 +118,6 @@ def output_stats(num_frames, sample_rate, points_per_class):
     total_points = sum(points_per_class.values())
     total_seconds = num_frames / sample_rate
 
-    print points_per_class
     stats_string = '======================STATS=======================\n'
     stats_string += 'Total time ' + get_readable_time(total_seconds) + '\n'
     for key, value in points_per_class.iteritems():
@@ -148,15 +147,17 @@ def finish_analysis(deque_size, predictions, points_per_class, classnames):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 5:
-        print "Incorrect usage, please see top of file."
-        exit()
+    assert len(sys.argv) > 4 and len(sys.argv) < 7, 'Incorrect usage, please see top of analyzer.py file.'
+
     model_path = sys.argv[1]
     wav_path = sys.argv[2]
     frame_length = int(sys.argv[3])
     amp_threshold = int(sys.argv[4])
-    if (len(sys.argv) == 6):
+    if len(sys.argv) > 5 and int(sys.argv[5]) > 0:
         logging_freq = int(sys.argv[5])
+    elif len(sys.argv) > 5:
+        print "Invalid value for logging frequency, must be greater than 0."
+        exit()
     else:
         # log every minute by default
         logging_freq = 60

@@ -56,16 +56,15 @@ def test(model_path, test_path, num_test_samples):
         print 'Correct guesses for class "' + classname + ': ' + str(confusion_dict[classname + '_' + classname]) + '/' + str(samples_to_get)
 
     print '=================================================='
-    print 'Here\'s the confusion dictionary: first name is the correct answer, second is the prediction made by the model.'
-    print confusion_dict
+    print 'Here\'s the confusion dictionary: first name in the key is the correct answer, second is the prediction made by the model.'
+    for key, value in sorted(confusion_dict.items()):
+        print key + ': ' + str(value)
     return
 
 
 if __name__ == "__main__":
-    print len(sys.argv)
-    if len(sys.argv) != 4:
-        print "Incorrect usage, please see top of file."
-        exit()
+    assert len(sys.argv) == 4, 'Incorrect usage, please see top of test_model.py file.'
+
     model_path = sys.argv[1]
     test_path = sys.argv[2]
     num_test_samples = int(sys.argv[3])

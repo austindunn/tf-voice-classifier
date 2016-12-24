@@ -85,6 +85,8 @@ def save_new_spectrogram(sound_info, frame_length, sample_rate, filename, image_
 
 
 if __name__ == "__main__":
+    assert len(sys.argv) == 6, 'Incorrect usage, please see top of create_spectrograms.py file'
+
     class_dir = sys.argv[1]
     destination = sys.argv[2]
     frame_length = sys.argv[3]
