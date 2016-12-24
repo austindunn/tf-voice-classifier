@@ -1,17 +1,15 @@
 import tensorflow as tf
-import numpy
 import os
 import sys
 import random
 from glob import glob
-from PIL import Image
-from ConfigParser import ConfigParser
+from helper import *
 
 """
 This script contains methods for training and testing a tensorflow model
 using spectrogram data as input.
 
-Usage: python train.py [filepath] [train loops] [train samples] [test loops] [test samples] [savepath]
+Usage: python train.py [filepath] [train loops] [train samples] [test loops] [test samples] [?savepath]
 where 
 [filepath] is the location of the data
 [train loops] is the number of times to run the training loop
@@ -21,7 +19,7 @@ where
 [test samples] is the number of samples of each class to be fed to
     the model every iteration of the testing loop
 [savepath] is the path of the file to save the variables/tensors to,
-    if you want to save the model after trianing
+    if you want to save the model after trianing (this parameter is optional)
 """
 
 
@@ -62,7 +60,8 @@ def train_test_save(datapath, train_loops, train_samples, test_loops, test_sampl
             # a random sample is selected and added to the array of samples in the batch
             for sample in range(train_samples):
                 im = training_dir + classname + '/' + str(indices[sample]) + '.png'
-                flat = flatten_image(im)
+                spectro = Image.open(im)
+                flat = flatten_image(spectro)
                 batch_samples.append(flat)
                 batch_labels.append(class_label)
         train_accuracy = sess.run(accuracy, feed_dict={x:batch_samples, y_: batch_labels, keep_prob: 1.0})
@@ -120,20 +119,11 @@ def get_test_data(datapath, classnames, test_samples):
         # each sample in the class
         for sample in range(samples_to_get):
             im = class_dir + str(indices[sample]) + '.png'
-            flat = flatten_image(im)
+            spectro = Image.open(im)
+            flat = flatten_image(spectro)
             testing_data.append(flat)
             testing_labels.append(class_label)
     return testing_data, testing_labels
-
-
-def flatten_image(filepath):
-    im = Image.open(filepath)
-    data = numpy.array(im)
-    flat = data.flatten()
-    # tensor placeholder will expect floats
-    flat = flat.astype(numpy.float32)
-    flat = numpy.multiply(flat, 1.0 / 255.0)
-    return flat
 
 
 def make_config_file(path, tensor_size, num_classes, classnames):

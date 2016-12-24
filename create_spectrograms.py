@@ -3,10 +3,12 @@ This script creates a bunch of square spectrograms from short audio clips.
 
 Usage: python create_spectrograms.py [class dir] [destination] [frame length]
                                      [image size] [amp threshold]
-where...
+where
     [class dir] is the name of the directory containing directories named for
         each class, which in turn contain wav files to be turned into spectrograms
-    [destination] is the directory to save the spectrograms to
+        (this should include the final slash, e.g. path/to/directory/)
+    [destination] is the directory to save the spectrograms to (this should 
+        include the final slash, e.g. path/to/directory/)
     [frame length] is how long each frame to be FFT'd should be
     [image size] is the height and width of resulting spectrogram images
     [amp threshold] is the minimum average amplitude (sample value) of each frame that
@@ -16,10 +18,8 @@ where...
 import sys
 import os
 import wave
-import pylab
-import numpy
 from glob import glob
-from PIL import Image, ImageChops
+from helper import *
 
 
 def create_spectrograms(class_dir, destination, frame_length, image_size, amp_threshold):
@@ -54,7 +54,7 @@ def create_spectrograms(class_dir, destination, frame_length, image_size, amp_th
                     filename = '0'
                 full_dest = destination + 'testing/' + classname + '/' if (class_count % 7 == 0) else destination + 'training/' + classname + '/'
 
-                create_new_spectrogram(sound_info, frame_length, sample_rate, filename, image_size, full_dest)
+                save_new_spectrogram(sound_info, frame_length, sample_rate, filename, image_size, full_dest)
 
                 class_count += 1
                 total_count += 1
@@ -77,30 +77,11 @@ def create_class_dirs(destination, classname):
         os.mkdir(destination + 'testing/' + classname)
 
 
-def create_new_spectrogram(sound_info, frame_length, sample_rate, filename, image_size, full_dest):
-    pylab.figure(num=None, figsize=(19, 12))
-    pylab.axis('off')
-    pylab.specgram(sound_info, NFFT=frame_length, Fs=sample_rate)
-    pylab.savefig(filename + '.png')
-    pylab.close()
-
-    im = Image.open(filename + '.png')
-    im = customize(im, image_size)
-    im.save(filename + '.png')
-
+def save_new_spectrogram(sound_info, frame_length, sample_rate, filename, image_size, full_dest):
+    spectro = create_spectrogram(sound_info, frame_length, sample_rate, filename, image_size)
+    spectro.save(filename + '.png')
     os.rename(filename + '.png', full_dest + filename + '.png')
     return
-
-
-def customize(im, image_size):
-    bg = Image.new(im.mode, im.size, im.getpixel((0,0)))
-    diff = ImageChops.difference(im, bg)
-    diff = ImageChops.add(diff, diff, 2.0, -100)
-    bbox = diff.getbbox()
-    if bbox:
-        im = im.crop(bbox)
-    im = im.resize((image_size, image_size))
-    return im
 
 
 if __name__ == "__main__":

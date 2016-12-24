@@ -1,18 +1,27 @@
 import tensorflow as tf
-import pylab
-import numpy
 import sys
 import wave
 import os
 from scipy.stats import mode
 from collections import deque
-from PIL import Image, ImageChops
-from ConfigParser import ConfigParser
+from helper import *
 
 """
 This script will generate simple stats on an audio file, given a trained TensorFlow model
 
-Usage: python classifier.py 
+Usage: python analyzer.py [model path] [wav path] [frame length] [amp threshold] [?logging frequency]
+where
+    [model path] is the path to the trained and saved TensorFlow model created
+        using train.py
+    [wav path] is the path to the wav file to analyze
+    [frame length] is the length of the frame to use to generate spectrograms
+        (this should match the frame length specified when initially creating
+        your spectrograms)
+    [amp threshold] is the threshold below which to ignore audio (again, this
+        should match the frame length specified when initially creating your 
+        spectrograms)
+    [logging frequency] is an optional argument specifying how often (in seconds)
+        you would like updates on stats gathered in analysis so far.
 """
 
 def read_and_predict(model_path, wav_path, frame_length, amp_threshold, logging_freq):
@@ -41,9 +50,11 @@ def read_and_predict(model_path, wav_path, frame_length, amp_threshold, logging_
     points_per_class = dict((classname, 0) for classname in classnames)
     start_points = 0
     talking_started = False
+    count = 0
 
     print 'Starting classification... Examining ' + str(num_windows) + ' windows.'
     while wav.tell() + frame_length <= num_frames:
+        count += 1
         # logging stats
         if (wav.tell() > 0 and wav.tell() % (sample_rate * logging_freq) == 0):
             output_stats(wav.tell(), sample_rate, points_per_class)
@@ -73,14 +84,14 @@ def read_and_predict(model_path, wav_path, frame_length, amp_threshold, logging_
             continue
 
         # frame is valid, make prediction
-        flat_spectro = create_flat_spectrogram(sound_info, frame_length, sample_rate)
+        flat_spectro = create_flat_spectrogram(sound_info, frame_length, sample_rate, 'tmp', 256)
 
         predicted = prediction.eval(session=sess, feed_dict={x: flat_spectro})
         predictions.append(predicted[0])
         if len(predictions) >= deque_size/2:
             m = mode(predictions)
             points_per_class[classnames[m.mode[0]]] += 1
-        else:
+        elif count >= deque_size/2:
             talking_started = True
             start_points += 1
 
@@ -91,47 +102,16 @@ def read_and_predict(model_path, wav_path, frame_length, amp_threshold, logging_
     return 
 
 
-def get_config_data(model_path):
-    config = ConfigParser()
-    config.read(model_path + '-config.ini')
-    tensor_size = int(config.get('Sizes', 'tensor_size'))
-    num_classes = int(config.get('Sizes', 'num_classes'))
-    classnames_str = config.get('Classnames', 'classnames')
-    classnames = classnames_str.split(',')
-    return tensor_size, num_classes, classnames
-
-
-def create_flat_spectrogram(sound_info, frame_length, sample_rate):
-    pylab.figure(num=None, figsize=(19, 12))
-    pylab.axis('off')
-    pylab.specgram(sound_info, NFFT=frame_length, Fs=sample_rate)
-    pylab.savefig('tmp.png')
-    pylab.close()
-    spectro = Image.open('tmp.png')
-    spectro = squarify(spectro, 256)
+def create_flat_spectrogram(sound_info, frame_length, sample_rate, filename, image_size):
+    spectro = create_spectrogram(sound_info, frame_length, sample_rate, filename, image_size)
     flat_spectro = flatten(spectro)
     return flat_spectro
 
 def flatten(im):
-    data = numpy.array(im)
-    flat = data.flatten()
-    # tensor placeholder will expect floats
-    flat = flat.astype(numpy.float32)
-    flat = numpy.multiply(flat, 1.0 / 255.0)
+    flat = flatten_image(im)
     flat_in_array = []
     flat_in_array.append(flat)
     return flat_in_array
-
-
-def squarify(im, image_size):
-    bg = Image.new(im.mode, im.size, im.getpixel((0,0)))
-    diff = ImageChops.difference(im, bg)
-    diff = ImageChops.add(diff, diff, 2.0, -100)
-    bbox = diff.getbbox()
-    if bbox:
-        im = im.crop(bbox)
-    im = im.resize((image_size, image_size))
-    return im
 
 
 def output_stats(num_frames, sample_rate, points_per_class):

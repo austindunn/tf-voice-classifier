@@ -1,16 +1,14 @@
 import tensorflow as tf
-import numpy
 import os
 import sys
 from glob import glob
-from PIL import Image
-from ConfigParser import ConfigParser
+from helper import *
 
 """
 This script is used to load previously trained TF models and allow them to
     evaluate real data.
 
-Usage: python restore_test.py [model path] [test path] [num test samples]
+Usage: python test_model.py [model path] [test path] [num test samples]
 where
     [model path] is the path to a trained and saved TensorFlow model
     [test path] is the path to the directory containing test data, organized
@@ -19,7 +17,7 @@ where
         for each class
 """
 
-def ask(model_path, test_path, num_test_samples):
+def test(model_path, test_path, num_test_samples):
     tensor_size, num_classes, classnames = get_config_data(model_path)
     x = tf.placeholder(tf.float32, [None, tensor_size])
     W = tf.Variable(tf.zeros([tensor_size, num_classes]), name="weights")
@@ -50,7 +48,8 @@ def ask(model_path, test_path, num_test_samples):
         # each sample in the class
         for sample in range(samples_to_get):
             im = class_dir + str(indices[sample]) + '.png'
-            flat = flatten_image(im)
+            spectro = Image.open(im)
+            flat = flatten_image(spectro)
             predicted = prediction.eval(session=sess, feed_dict={x: [flat]})
             confusion_key = classname + '_' + classnames[predicted[0]]
             confusion_dict[confusion_key] += 1
@@ -62,26 +61,6 @@ def ask(model_path, test_path, num_test_samples):
     return
 
 
-def get_config_data(model_path):
-    config = ConfigParser()
-    config.read(model_path + '-config.ini')
-    tensor_size = int(config.get('Sizes', 'tensor_size'))
-    num_classes = int(config.get('Sizes', 'num_classes'))
-    classnames_str = config.get('Classnames', 'classnames')
-    classnames = classnames_str.split(',')
-    return tensor_size, num_classes, classnames
-
-
-def flatten_image(filepath):
-    im = Image.open(filepath)
-    data = numpy.array(im)
-    flat = data.flatten()
-    # tensor placeholder will expect floats
-    flat = flat.astype(numpy.float32)
-    flat = numpy.multiply(flat, 1.0 / 255.0)
-    return flat
-
-
 if __name__ == "__main__":
     print len(sys.argv)
     if len(sys.argv) != 4:
@@ -90,4 +69,4 @@ if __name__ == "__main__":
     model_path = sys.argv[1]
     test_path = sys.argv[2]
     num_test_samples = int(sys.argv[3])
-    ask(model_path, test_path, num_test_samples)
+    test(model_path, test_path, num_test_samples)
